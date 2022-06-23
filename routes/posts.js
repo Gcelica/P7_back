@@ -1,49 +1,18 @@
-const router = require("express").Router();
-const Post = require("../models/Post");
+const express = require("express");
+const router = express.Router();
 
-//creer un post
+//middleware pour l'authentification
+const auth = require("../middleware/auth");
+//middleware pour la gestion des images
+const multer = require("../middleware/multer-config");
 
-router.post("/", async (req, res) => {
-  const newPost = new Post(req.body);
-  try {
-    const savedPost = await newPost.save();
-    res.status(200).json(savedPost);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+const postCtrl = require("../controllers/posts");
 
-//supprimer un post
-
-router.delete("/:id", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (post.userId === req.body.userId) {
-      await post.deleteOne();
-      res.status(200).json("ce commentaire a été supprimé");
-    } else {
-      res.status(403).json("vous pouvez supprimer que vos commentaires");
-    }
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-// like et dislike
-
-router.put("/:id/like", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post.likes.includes(req.body.userId)) {
-      await post.updateOne({ $push: { likes: req.body.userId } });
-      res.status(200).json("Ce commentaire à été liké !");
-    } else {
-      await post.updateOne({ $pull: { likes: req.body.userId } });
-      res.status(200).json("Ce commentaire à été disliké !");
-    }
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
+router.post("/", auth, multer, postCtrl.createPost);
+router.put("/:id", auth, multer, postCtrl.modifyPost);
+router.delete("/:id", auth, postCtrl.deletePost);
+router.get("/:id", auth, postCtrl.getOnePost);
+router.get("/", auth, postCtrl.getAllPosts);
+router.post("/:id/like", auth, multer, postCtrl.likeDislike);
 
 module.exports = router;
