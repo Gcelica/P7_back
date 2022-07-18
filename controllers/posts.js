@@ -7,7 +7,7 @@ exports.createPost = (req, res) => {
   const postObject = JSON.parse(req.body.post);
 
   //creation instance modele post
-  const sauce = new Post({
+  const post = new Post({
     ...postObject,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
       req.file.filename
@@ -15,7 +15,7 @@ exports.createPost = (req, res) => {
   });
   console.log(post);
   //sauvegarde dans la base de donnée
-  sauce
+  post
     .save()
     .then(() => res.status(201).json({ message: "Post enregistré !" }))
     .catch((error) => (400).JSON({ error }));
@@ -24,7 +24,7 @@ exports.createPost = (req, res) => {
 //modification d'un post
 exports.modifyPost = (req, res, next) => {
   Post.findOne({ _id: req.params.id }) //recherche de l'url image à supprimer
-    //verification id utlisateur et id post avant de modifier
+    //verification id utilisateur et id post avant de modifier
     .then((post) => {
       if (req.body.userId !== post.userId) {
         res.status(403).json({ error: "pas les bons droits" });
@@ -81,7 +81,7 @@ exports.deletePost = (req, res, next) => {
 };
 
 // like et dislike
-exports.likeDislike = (req, res, next) => {
+exports.likeDislike = (req, res) => {
   if (req.body.like == 1) {
     Post.updateOne(
       { _id: req.params.id },

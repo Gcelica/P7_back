@@ -8,27 +8,31 @@ const jwt = require("jsonwebtoken");
 
 //fonction pour enregistrer les nouveaux utilisateurs et crypter le mot de passe
 exports.signup = (req, res, next) => {
+  console.log("hola todos");
   bcrypt
     .hash(req.body.password, 10)
     .then((hash) => {
       const user = new User({
+        username: req.body.username,
         email: req.body.email,
         password: hash,
-        username: req.body.username,
       });
 
       //enregistrement de l'utlisateur dans la base de donnée
       user
         .save()
-        .then(() => res.status(201).json({ message: "utlisateur crée" }))
+        .then(() => res.status(201).json({ message: "utilisateur crée" }))
         .catch((error) => res.status(400).json({ error }));
     })
     .catch((error) => res.status(500).json({ error }));
 };
 
 //middleware connection
+
 //fonction pour connecter les utlisateurs existants
 exports.login = (req, res, next) => {
+  console.log(req.body);
+  console.log("coucou");
   User.findOne({
     email: req.body.email,
   })
@@ -65,4 +69,74 @@ exports.login = (req, res, next) => {
         error,
       })
     );
+};
+
+//mise à jour utilisateur
+exports.updateUser = (req, res) => {
+  User.findOne({
+    _id: req.body.userId,
+  });
+  if (req.body.userId === req.params.id || req.body.isAdmin) {
+    if (req.body.password) {
+      try {
+        const salt = bcrypt.genSalt(10);
+        req.body.password = bcrypt.hash(req.body.password, salt);
+      } catch (err) {
+        return res.status(500).json(err);
+      }
+    }
+    try {
+      const user = User.findByIdAndUpdate(req.params.id, {
+        $set: req.body,
+      });
+      res.status(200).json("compte mis à jour");
+    } catch (err) {
+      return res.status(500).json(err);
+    }
+  } else {
+    return res.status(403).json("operation impossible");
+  }
+};
+
+//follow a user
+
+exports.followers = (req, res) => {
+  User.findOne({
+    _id: req.body.userId,
+  });
+  if (req.body.userId !== req.params.id) {
+    try {
+      const user = User.findById(req.params.id);
+      const currentUser = User.findById(req.body.userId);
+      if (!user.followers.includes(req.body.userId)) {
+        user.updateOne({ $push: { followers: req.body.userId } });
+        currentUser.updateOne({ $push: { followings: req.params.id } });
+        res.status(200).json("vous etes abonné");
+      } else {
+        res.status(403).json("vous êtes deja abonné à cet utilisateur");
+      }
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  } else {
+    res.status(403).json("you cant follow yourself");
+  }
+};
+
+//supprimer un compte utlisateur
+
+exports.deleteUser = (req, res) => {
+  User.findOne({
+    _id: req.body.userId,
+  });
+  if (req.body.userId === req.params.id) {
+    try {
+      User.findByIdAndDelete(req.params.id);
+      res.status(200).json("le compte à été supprimé");
+    } catch (err) {
+      return res.status(500).json(err);
+    }
+  } else {
+    return res.status(403).json("Vous ne pouvez pas supprimer ce compte!");
+  }
 };

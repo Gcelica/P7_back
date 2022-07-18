@@ -1,5 +1,6 @@
 // importer token d'authentification
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 // middleware d'authentification
 module.exports = (req, res, next) => {

@@ -26,6 +26,17 @@ const app = express();
 // recupere les requetes avec un content-type/json
 app.use(express.json());
 
+//headers pour autoriser les requetes
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content, Accept, Content-Type, Authorization"
+  );
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+  next();
+});
+
 //middleware
 app.use(express.json());
 app.use(helmet());
