@@ -5,8 +5,10 @@ const router = express.Router();
 
 router.post("/signup", userCtrl.signup);
 router.post("/login", userCtrl.login);
-router.delete("/deleteUser", userCtrl.deleteUser);
-router.put("/followers", userCtrl.followers);
-router.put("updateUser", userCtrl.updateUser);
+router.delete("/:id", userCtrl.deleteUser);
+router.get("/.", userCtrl.getUser);
+router.put("/:id/follow", userCtrl.followers);
+router.put("/:id/unfollow", userCtrl.unfollowers);
+router.put("/:id", userCtrl.updateUser);
 
 module.exports = router;

@@ -98,6 +98,22 @@ exports.updateUser = (req, res) => {
   }
 };
 
+//trouver un utilisateur
+
+exports.getUser = (req, res) => {
+  const userId = req.query.userId;
+  const username = req.query.username;
+  try {
+    const user = userId
+      ? User.findById(userId)
+      : User.findOne({ username: username });
+    const { password, updatedAt, ...other } = user._doc;
+    res.status(200).json(other);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};
+
 //follow a user
 
 exports.followers = (req, res) => {
@@ -120,6 +136,28 @@ exports.followers = (req, res) => {
     }
   } else {
     res.status(403).json("you cant follow yourself");
+  }
+};
+
+//unfollow a user
+
+exports.unfollowers = (req, res) => {
+  if (req.body.userId !== req.params.id) {
+    try {
+      const user = User.findById(req.params.id);
+      const currentUser = User.findById(req.body.userId);
+      if (user.followers.includes(req.body.userId)) {
+        user.updateOne({ $pull: { followers: req.body.userId } });
+        currentUser.updateOne({ $pull: { followings: req.params.id } });
+        res.status(200).json("user has been unfollowed");
+      } else {
+        res.status(403).json("you dont follow this user");
+      }
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  } else {
+    res.status(403).json("you cant unfollow yourself");
   }
 };
 

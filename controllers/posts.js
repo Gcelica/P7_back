@@ -133,3 +133,20 @@ exports.likeDislike = (req, res) => {
       .catch((error) => res.status(400).json({ error }));
   }
 };
+
+// timeline posts
+
+exports.timelinePost = (req, res) => {
+  try {
+    const currentUser = User.findById(req.params.userId);
+    const userPosts = Post.find({ userId: currentUser._id });
+    const friendPosts = Promise.all(
+      currentUser.followings.map((friendId) => {
+        return Post.find({ userId: friendId });
+      })
+    );
+    res.status(200).json(userPosts.concat(...friendPosts));
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};
