@@ -72,21 +72,21 @@ exports.login = (req, res, next) => {
 };
 
 //mise à jour utilisateur
-exports.updateUser = (req, res) => {
+exports.updateUser = async (req, res) => {
   User.findOne({
     _id: req.body.userId,
   });
   if (req.body.userId === req.params.id || req.body.isAdmin) {
     if (req.body.password) {
       try {
-        const salt = bcrypt.genSalt(10);
-        req.body.password = bcrypt.hash(req.body.password, salt);
+        const salt = await bcrypt.genSalt(10);
+        req.body.password = await bcrypt.hash(req.body.password, salt);
       } catch (err) {
         return res.status(500).json(err);
       }
     }
     try {
-      const user = User.findByIdAndUpdate(req.params.id, {
+      const user = await User.findByIdAndUpdate(req.params.id, {
         $set: req.body,
       });
       res.status(200).json("compte mis à jour");
@@ -98,15 +98,17 @@ exports.updateUser = (req, res) => {
   }
 };
 
-//trouver un utilisateur
+//trouver utilisateurs
 
-exports.getUser = (req, res) => {
-  const userId = req.query.userId;
-  const username = req.query.username;
+exports.getAllUsers = async (req, res) => {
+  const users = await User.find().select("-password");
+  res.status(200).json(users);
+};
+
+//trouver utilisateur
+exports.getUserInfo = async (req, res) => {
   try {
-    const user = userId
-      ? User.findById(userId)
-      : User.findOne({ username: username });
+    const user = await User.findById(req.params.id);
     const { password, updatedAt, ...other } = user._doc;
     res.status(200).json(other);
   } catch (err) {
@@ -116,17 +118,17 @@ exports.getUser = (req, res) => {
 
 //follow a user
 
-exports.followers = (req, res) => {
+exports.followers = async (req, res) => {
   User.findOne({
     _id: req.body.userId,
   });
   if (req.body.userId !== req.params.id) {
     try {
-      const user = User.findById(req.params.id);
-      const currentUser = User.findById(req.body.userId);
+      const user = await User.findById(req.params.id);
+      const currentUser = await User.findById(req.body.userId);
       if (!user.followers.includes(req.body.userId)) {
-        user.updateOne({ $push: { followers: req.body.userId } });
-        currentUser.updateOne({ $push: { followings: req.params.id } });
+        await user.updateOne({ $push: { followers: req.body.userId } });
+        await currentUser.updateOne({ $push: { followings: req.params.id } });
         res.status(200).json("vous etes abonné");
       } else {
         res.status(403).json("vous êtes deja abonné à cet utilisateur");
@@ -141,14 +143,14 @@ exports.followers = (req, res) => {
 
 //unfollow a user
 
-exports.unfollowers = (req, res) => {
+exports.unfollowers = async (req, res) => {
   if (req.body.userId !== req.params.id) {
     try {
-      const user = User.findById(req.params.id);
-      const currentUser = User.findById(req.body.userId);
+      const user = await User.findById(req.params.id);
+      const currentUser = await User.findById(req.body.userId);
       if (user.followers.includes(req.body.userId)) {
-        user.updateOne({ $pull: { followers: req.body.userId } });
-        currentUser.updateOne({ $pull: { followings: req.params.id } });
+        await user.updateOne({ $pull: { followers: req.body.userId } });
+        await currentUser.updateOne({ $pull: { followings: req.params.id } });
         res.status(200).json("user has been unfollowed");
       } else {
         res.status(403).json("you dont follow this user");
@@ -163,13 +165,13 @@ exports.unfollowers = (req, res) => {
 
 //supprimer un compte utlisateur
 
-exports.deleteUser = (req, res) => {
+exports.deleteUser = async (req, res) => {
   User.findOne({
     _id: req.body.userId,
   });
   if (req.body.userId === req.params.id) {
     try {
-      User.findByIdAndDelete(req.params.id);
+      await User.findByIdAndDelete(req.params.id);
       res.status(200).json("le compte à été supprimé");
     } catch (err) {
       return res.status(500).json(err);

@@ -1,48 +1,31 @@
 const fs = require("fs");
 const Post = require("../models/Post");
-const { post } = require("../routes/users");
+const User = require("../models/User");
 
 //creer un post
-exports.createPost = (req, res) => {
-  const postObject = JSON.parse(req.body.post);
-
-  //creation instance modele post
-  const post = new Post({
-    ...postObject,
-    imageUrl: `${req.protocol}://${req.get("host")}/images/${
-      req.file.filename
-    }`,
-  });
-  console.log(post);
-  //sauvegarde dans la base de donnée
-  post
-    .save()
-    .then(() => res.status(201).json({ message: "Post enregistré !" }))
-    .catch((error) => (400).JSON({ error }));
+exports.createPost = async (req, res) => {
+  const newPost = new Post(req.body);
+  try {
+    const savedPost = await newPost.save();
+    res.status(200).json(savedPost);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 //modification d'un post
-exports.modifyPost = (req, res, next) => {
-  Post.findOne({ _id: req.params.id }) //recherche de l'url image à supprimer
-    //verification id utilisateur et id post avant de modifier
-    .then((post) => {
-      if (req.body.userId !== post.userId) {
-        res.status(403).json({ error: "pas les bons droits" });
-      }
-    });
-
-  const postObject = req.file
-    ? {
-        //ajout d'une nouvelle image
-        ...JSON.parse(req.body.post),
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${
-          req.file.filename
-        }`,
-      }
-    : { ...req.body };
-  Post.updateOne({ _id: req.params.id }, { ...postObject, _id: req.params.id })
-    .then(() => res.status(200).json({ message: "post modifié" }))
-    .catch(() => res.status(400).json({ error }));
+exports.modifyPost = async (req, res, next) => {
+  try {
+    const post = Post.findById(req.params.id);
+    if (post.userId === req.body.userId) {
+      await post.updateOne({ $set: req.body });
+      res.status(200).json("post mis à jour !");
+    } else {
+      res.status(403).json("operation impossible !");
+    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 // Récupération d'un post
@@ -136,11 +119,11 @@ exports.likeDislike = (req, res) => {
 
 // timeline posts
 
-exports.timelinePost = (req, res) => {
+exports.timelinePost = async (req, res) => {
   try {
-    const currentUser = User.findById(req.params.userId);
-    const userPosts = Post.find({ userId: currentUser._id });
-    const friendPosts = Promise.all(
+    const currentUser = await User.findById(req.params.userId);
+    const userPosts = await Post.find({ userId: currentUser._id });
+    const friendPosts = await Promise.all(
       currentUser.followings.map((friendId) => {
         return Post.find({ userId: friendId });
       })
