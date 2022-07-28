@@ -29,91 +29,54 @@ exports.modifyPost = async (req, res, next) => {
 };
 
 // Récupération d'un post
-exports.getOnePost = (req, res, next) => {
-  Post.findOne({ _id: req.params.id }) //comparaison meme id dans la requete que dans la base de données
-    .then((post) => res.status(200).json(post))
-    .catch((error) => res.status(404).json({ error }));
+exports.getOnePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    res.status(200).json(post);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 // Récupération de tous les posts
-exports.getAllPosts = (req, res, next) => {
-  Post.find() //liste de tous les posts de la base de données
-    .then((post) => res.status(200).json(post))
-    .catch((error) => res.status(400).json({ error }));
+exports.getAllPosts = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    const posts = await Post.find({ userId: user._id });
+    res.status(200).json(posts);
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 //supprimer un post
-exports.deletePost = (req, res, next) => {
-  Post.findOne({ _id: req.params.id }) //recherche de l'url image à supprimer
-    .then((post) => {
-      //verification id utlisateur et id post avant de supprimer
-      if (req.body.userId !== post.userId) {
-        res.status(403).json({ erro: "pas les bons droits" });
-      }
-      const filename = post.imageUrl.split("/images/")[1];
-      //suppression avec "unlink" et le nom du fichier
-      fs.unlink(`images/${filename}`, () => {
-        //document correspondant de la base de données supprimé
-        Post.deleteOne({ _id: req.params.id })
-
-          .then(() => res.status(200).json({ message: "Post supprimé" }))
-          .catch((error) => res.status(400).json({ error }));
-      });
-    })
-    .catch((error = res.status(500).json({ error })));
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (post.userId === req.body.userId) {
+      await post.deleteOne();
+      res.status(200).json("the post has been deleted");
+    } else {
+      res.status(403).json("you can delete only your post");
+    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
 
 // like et dislike
-exports.likeDislike = (req, res) => {
-  if (req.body.like == 1) {
-    Post.updateOne(
-      { _id: req.params.id },
-      {
-        $push: { usersLiked: req.body.userId },
-        $inc: { likes: req.body.like },
-      }
-    )
-
-      .then(() => res.status(200).json({ message: "J'aime !" }))
-      .catch((error) => res.status(400).json({ error }));
-  } else if (req.body.like == -1) {
-    Post.updateOne(
-      { _id: req.params.id },
-      {
-        $inc: { dislikes: 1 },
-        $push: { usersDisliked: req.body.userId },
-      }
-    )
-      .then((post) => res.status(200).json({ message: "J'aime pas !" }))
-      .catch((error) => res.status(400).json({ error }));
-  } else {
-    Post.findOne({ _id: req.params.id })
-      .then((post) => {
-        if (post.usersLiked.includes(req.body.userId)) {
-          post
-            .updateOne(
-              { _id: req.params.id },
-              { $pull: { usersLiked: req.body.userId }, $inc: { likes: -1 } }
-            )
-            .then((post) => {
-              res.status(200).json({ message: "Je retire mon j'aime" });
-            })
-            .catch((error) => res.status(400).json({ error }));
-        } else if (post.usersDisliked.includes(req.body.userId)) {
-          Post.updateOne(
-            { _id: req.params.id },
-            {
-              $pull: { usersDisliked: req.body.userId },
-              $inc: { dislikes: -1 },
-            }
-          )
-            .then((post) => {
-              res.status(200).json({ message: "Je retire mon j'aime pas !" });
-            })
-            .catch((error) => res.status(400).json({ error }));
-        }
-      })
-      .catch((error) => res.status(400).json({ error }));
+exports.likeDislike = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post.likes.includes(req.body.userId)) {
+      await post.updateOne({ $push: { likes: req.body.userId } });
+      res.status(200).json("The post has been liked");
+    } else {
+      await post.updateOne({ $pull: { likes: req.body.userId } });
+      res.status(200).json("The post has been disliked");
+    }
+  } catch (err) {
+    res.status(500).json(err);
   }
 };
 

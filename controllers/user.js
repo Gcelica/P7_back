@@ -107,8 +107,12 @@ exports.getAllUsers = async (req, res) => {
 
 //trouver utilisateur
 exports.getUserInfo = async (req, res) => {
+  const userId = req.query.userId;
+  const username = req.query.username;
   try {
-    const user = await User.findById(req.params.id);
+    const user = userId
+      ? await User.findById(userId)
+      : await User.findOne({ username: username });
     const { password, updatedAt, ...other } = user._doc;
     res.status(200).json(other);
   } catch (err) {
@@ -151,9 +155,9 @@ exports.unfollowers = async (req, res) => {
       if (user.followers.includes(req.body.userId)) {
         await user.updateOne({ $pull: { followers: req.body.userId } });
         await currentUser.updateOne({ $pull: { followings: req.params.id } });
-        res.status(200).json("user has been unfollowed");
+        res.status(200).json("vous êtes desabonné");
       } else {
-        res.status(403).json("you dont follow this user");
+        res.status(403).json("vous ne pouvez pas vous abonner à ce compte");
       }
     } catch (err) {
       res.status(500).json(err);
