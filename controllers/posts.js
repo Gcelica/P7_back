@@ -38,7 +38,7 @@ exports.getOnePost = async (req, res) => {
   }
 };
 
-// Récupération de tous les posts
+// Récupération de tous les posts d'un utilisateur
 exports.getAllPosts = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
@@ -80,7 +80,7 @@ exports.likeDislike = async (req, res) => {
   }
 };
 
-// timeline posts
+// timeline posts (posts perso et abonnement)
 
 exports.timelinePost = async (req, res) => {
   try {
